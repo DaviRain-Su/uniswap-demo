@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Block Explorer - Anvil</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+        }
+        .header {
+            background: #161b22;
+            padding: 15px 30px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header h1 {
+            color: #58a6ff;
+            font-size: 1.5em;
+        }
+        .status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        .status.connected { background: #238636; }
+        .status.disconnected { background: #da3633; }
+        .search-box {
+            flex: 1;
+            max-width: 500px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            background: #0d1117;
+            color: #c9d1d9;
+            font-size: 0.9em;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+        .stat-card .label {
+            color: #8b949e;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #8b949e;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.95em;
+        }
+        .tab:hover { background: #21262d; }
+        .tab.active {
+            background: #21262d;
+            color: #58a6ff;
+        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #161b22;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        th {
+            background: #21262d;
+            color: #8b949e;
+            font-weight: 600;
+            font-size: 0.85em;
+            text-transform: uppercase;
+        }
+        tr:hover { background: #21262d; }
+        .hash {
+            font-family: monospace;
+            color: #58a6ff;
+            cursor: pointer;
+        }
+        .hash:hover { text-decoration: underline; }
+        .address {
+            font-family: monospace;
+            color: #7ee787;
+        }
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .tag-success { background: #238636; color: #fff; }
+        .tag-pending { background: #9e6a03; color: #fff; }
+        .tag-failed { background: #da3633; color: #fff; }
+        .detail-card {
+            background: #161b22;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            margin-bottom: 20px;
+        }
+        .detail-card h3 {
+            padding: 15px 20px;
+            border-bottom: 1px solid #30363d;
+            color: #c9d1d9;
+        }
+        .detail-row {
+            display: flex;
+            padding: 12px 20px;
+            border-bottom: 1px solid #21262d;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label {
+            width: 200px;
+            color: #8b949e;
+            flex-shrink: 0;
+        }
+        .detail-value {
+            flex: 1;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        .back-btn {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .back-btn:hover { background: #30363d; }
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #8b949e;
+        }
+        .refresh-btn {
+            background: #238636;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: auto;
+        }
+        .refresh-btn:hover { background: #2ea043; }
+        .method {
+            font-family: monospace;
+            background: #21262d;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Anvil Block Explorer</h1>
+        <span class="status" id="status">Connecting...</span>
+        <div class="search-box">
+            <input type="text" id="search" placeholder="Search by Address / Tx Hash / Block Number" onkeypress="handleSearch(event)">
+        </div>
+        <button class="refresh-btn" onclick="refreshAll()">Refresh</button>
+    </div>
+
+    <div class="container">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Latest Block</div>
+                <div class="value" id="latest-block">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Transactions</div>
+                <div class="value" id="total-txs">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Chain ID</div>
+                <div class="value" id="chain-id">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Gas Price</div>
+                <div class="value" id="gas-price">-</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('blocks')">Blocks</button>
+            <button class="tab" onclick="showTab('transactions')">Transactions</button>
+            <button class="tab" onclick="showTab('accounts')">Test Accounts</button>
+            <button class="tab" onclick="showTab('contract')">AMM Contract</button>
+        </div>
+
+        <!-- Blocks Panel -->
+        <div id="blocks-panel" class="panel active">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Block</th>
+                        <th>Timestamp</th>
+                        <th>Txs</th>
+                        <th>Gas Used</th>
+                        <th>Gas Limit</th>
+                        <th>Hash</th>
+                    </tr>
+                </thead>
+                <tbody id="blocks-table"></tbody>
+            </table>
+        </div>
+
+        <!-- Transactions Panel -->
+        <div id="transactions-panel" class="panel">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tx Hash</th>
+                        <th>Block</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="txs-table"></tbody>
+            </table>
+        </div>
+
+        <!-- Accounts Panel -->
+        <div id="accounts-panel" class="panel">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Address</th>
+                        <th>ETH Balance</th>
+                        <th>Private Key</th>
+                    </tr>
+                </thead>
+                <tbody id="accounts-table"></tbody>
+            </table>
+        </div>
+
+        <!-- Contract Panel -->
+        <div id="contract-panel" class="panel">
+            <div class="detail-card">
+                <h3>AMM Contract (Uniswap x*y=k)</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Address</span>
+                    <span class="detail-value address" id="contract-addr">0x5FbDB2315678afecb367f032d93F642f64180aa3</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Reserve0</span>
+                    <span class="detail-value" id="c-reserve0">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Reserve1</span>
+                    <span class="detail-value" id="c-reserve1">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">K Value (x*y)</span>
+                    <span class="detail-value" id="c-k" style="color: #f78166;">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total LP Supply</span>
+                    <span class="detail-value" id="c-lp">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Price (T0 → T1)</span>
+                    <span class="detail-value" id="c-price">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="detail-panel" class="panel">
+            <button class="back-btn" onclick="hideDetail()">← Back</button>
+            <div id="detail-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const RPC_URL = "http://127.0.0.1:8545";
+        const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+        const CONTRACT_ABI = [
+            "function getReserve0() view returns (uint256)",
+            "function getReserve1() view returns (uint256)",
+            "function getK() view returns (uint256)",
+            "function totalSupply() view returns (uint256)",
+            "function getPrice0(uint256 scale) view returns (uint256)"
+        ];
+
+        // Anvil default test accounts
+        const TEST_ACCOUNTS = [
+            { address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", key: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" },
+            { address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", key: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" },
+            { address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", key: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a" },
+            { address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906", key: "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6" },
+            { address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65", key: "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" },
+        ];
+
+        let provider, contract;
+        let allTransactions = [];
+
+        async function init() {
+            try {
+                provider = new ethers.JsonRpcProvider(RPC_URL);
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+
+                const network = await provider.getNetwork();
+                document.getElementById('status').textContent = 'Connected';
+                document.getElementById('status').className = 'status connected';
+                document.getElementById('chain-id').textContent = network.chainId.toString();
+
+                await refreshAll();
+                setInterval(refreshAll, 5000);
+            } catch (e) {
+                document.getElementById('status').textContent = 'Disconnected';
+                document.getElementById('status').className = 'status disconnected';
+                console.error(e);
+            }
+        }
+
+        async function refreshAll() {
+            await Promise.all([
+                loadStats(),
+                loadBlocks(),
+                loadAccounts(),
+                loadContract()
+            ]);
+        }
+
+        async function loadStats() {
+            try {
+                const blockNumber = await provider.getBlockNumber();
+                const feeData = await provider.getFeeData();
+
+                document.getElementById('latest-block').textContent = blockNumber;
+                document.getElementById('gas-price').textContent =
+                    (parseFloat(ethers.formatUnits(feeData.gasPrice, 'gwei'))).toFixed(2) + ' Gwei';
+                document.getElementById('total-txs').textContent = allTransactions.length;
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+        }
+
+        async function loadBlocks() {
+            try {
+                const latestBlock = await provider.getBlockNumber();
+                const blocks = [];
+                allTransactions = [];
+
+                for (let i = latestBlock; i >= Math.max(0, latestBlock - 9); i--) {
+                    const block = await provider.getBlock(i, true);
+                    if (block) {
+                        blocks.push(block);
+                        if (block.transactions) {
+                            for (const tx of block.transactions) {
+                                if (typeof tx === 'object') {
+                                    allTransactions.push({ ...tx, blockNumber: i });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const tbody = document.getElementById('blocks-table');
+                tbody.innerHTML = blocks.map(b => `
+                    <tr onclick="showBlock(${b.number})" style="cursor:pointer">
+                        <td><span class="hash">${b.number}</span></td>
+                        <td>${new Date(Number(b.timestamp) * 1000).toLocaleString()}</td>
+                        <td>${b.transactions?.length || 0}</td>
+                        <td>${b.gasUsed.toString()}</td>
+                        <td>${b.gasLimit.toString()}</td>
+                        <td><span class="hash">${b.hash?.slice(0, 18)}...</span></td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('total-txs').textContent = allTransactions.length;
+                loadTransactions();
+            } catch (e) {
+                console.error('Blocks error:', e);
+            }
+        }
+
+        function loadTransactions() {
+            const tbody = document.getElementById('txs-table');
+            if (allTransactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty">No transactions yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allTransactions.slice(0, 20).map(tx => `
+                <tr onclick="showTx('${tx.hash}')" style="cursor:pointer">
+                    <td><span class="hash">${tx.hash?.slice(0, 18)}...</span></td>
+                    <td>${tx.blockNumber}</td>
+                    <td><span class="address">${tx.from?.slice(0, 10)}...</span></td>
+                    <td><span class="address">${tx.to ? tx.to.slice(0, 10) + '...' : 'Contract Create'}</span></td>
+                    <td>${ethers.formatEther(tx.value || 0)} ETH</td>
+                    <td><span class="tag tag-success">Success</span></td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadAccounts() {
+            const tbody = document.getElementById('accounts-table');
+            const rows = await Promise.all(TEST_ACCOUNTS.map(async (acc, i) => {
+                const balance = await provider.getBalance(acc.address);
+                return `
+                    <tr>
+                        <td>${i}</td>
+                        <td><span class="address">${acc.address}</span></td>
+                        <td>${parseFloat(ethers.formatEther(balance)).toFixed(4)} ETH</td>
+                        <td style="font-size:0.8em;color:#8b949e;">${acc.key.slice(0, 20)}...</td>
+                    </tr>
+                `;
+            }));
+            tbody.innerHTML = rows.join('');
+        }
+
+        async function loadContract() {
+            try {
+                const code = await provider.getCode(CONTRACT_ADDRESS);
+                if (code === '0x') {
+                    document.getElementById('c-reserve0').textContent = 'Contract not deployed';
+                    return;
+                }
+
+                const [r0, r1, k, lp, price] = await Promise.all([
+                    contract.getReserve0(),
+                    contract.getReserve1(),
+                    contract.getK(),
+                    contract.totalSupply(),
+                    contract.getPrice0(ethers.parseEther("1"))
+                ]);
+
+                document.getElementById('c-reserve0').textContent = formatTokens(r0) + ' tokens';
+                document.getElementById('c-reserve1').textContent = formatTokens(r1) + ' tokens';
+                document.getElementById('c-k').textContent = formatK(k);
+                document.getElementById('c-lp').textContent = formatTokens(lp) + ' LP';
+                document.getElementById('c-price').textContent = formatTokens(price);
+            } catch (e) {
+                console.error('Contract error:', e);
+            }
+        }
+
+        function formatTokens(wei) {
+            const num = parseFloat(ethers.formatEther(wei));
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+            return num.toFixed(4);
+        }
+
+        function formatK(k) {
+            const num = parseFloat(ethers.formatEther(k));
+            if (num === 0) return '0';
+            const exp = Math.floor(Math.log10(num));
+            return (num / Math.pow(10, exp)).toFixed(2) + 'e' + exp;
+        }
+
+        function showTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`[onclick="showTab('${name}')"]`).classList.add('active');
+            document.getElementById(`${name}-panel`).classList.add('active');
+        }
+
+        async function showBlock(number) {
+            const block = await provider.getBlock(number, true);
+            const content = `
+                <div class="detail-card">
+                    <h3>Block #${number}</h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Block Hash</span>
+                        <span class="detail-value">${block.hash}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Parent Hash</span>
+                        <span class="detail-value">${block.parentHash}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Timestamp</span>
+                        <span class="detail-value">${new Date(Number(block.timestamp) * 1000).toLocaleString()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Transactions</span>
+                        <span class="detail-value">${block.transactions?.length || 0}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Gas Used</span>
+                        <span class="detail-value">${block.gasUsed.toString()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Gas Limit</span>
+                        <span class="detail-value">${block.gasLimit.toString()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Base Fee</span>
+                        <span class="detail-value">${block.baseFeePerGas ? ethers.formatUnits(block.baseFeePerGas, 'gwei') + ' Gwei' : '-'}</span>
+                    </div>
+                </div>
+            `;
+            showDetail(content);
+        }
+
+        async function showTx(hash) {
+            const tx = await provider.getTransaction(hash);
+            const receipt = await provider.getTransactionReceipt(hash);
+
+            let methodName = 'Transfer';
+            if (tx.data && tx.data.length > 10) {
+                const selector = tx.data.slice(0, 10);
+                const methods = {
+                    '0x52f7c988': 'setFee',
+                    '0x8392b8c0': 'setReserves',
+                    '0x99bd2ba5': 'mintLP',
+                    '0x05fe138b': 'swap0For1',
+                    '0x32938f20': 'swap1For0',
+                    '0x87b21efc': 'addLiquidity',
+                    '0xed1bd76c': 'removeLiquidity',
+                };
+                methodName = methods[selector] || selector;
+            }
+
+            const content = `
+                <div class="detail-card">
+                    <h3>Transaction Details</h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Transaction Hash</span>
+                        <span class="detail-value">${tx.hash}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value">
+                            <span class="tag ${receipt?.status === 1 ? 'tag-success' : 'tag-failed'}">
+                                ${receipt?.status === 1 ? 'Success' : 'Failed'}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Block</span>
+                        <span class="detail-value">${tx.blockNumber}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">From</span>
+                        <span class="detail-value address">${tx.from}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">To</span>
+                        <span class="detail-value address">${tx.to || 'Contract Creation'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Value</span>
+                        <span class="detail-value">${ethers.formatEther(tx.value)} ETH</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Method</span>
+                        <span class="detail-value"><span class="method">${methodName}</span></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Gas Used</span>
+                        <span class="detail-value">${receipt?.gasUsed?.toString() || '-'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Gas Price</span>
+                        <span class="detail-value">${ethers.formatUnits(tx.gasPrice || 0, 'gwei')} Gwei</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Input Data</span>
+                        <span class="detail-value" style="font-size:0.8em;word-break:break-all;">${tx.data}</span>
+                    </div>
+                </div>
+            `;
+            showDetail(content);
+        }
+
+        function showDetail(content) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('detail-panel').classList.add('active');
+            document.getElementById('detail-content').innerHTML = content;
+        }
+
+        function hideDetail() {
+            document.getElementById('detail-panel').classList.remove('active');
+            document.querySelector('.tab.active').click();
+        }
+
+        async function handleSearch(e) {
+            if (e.key !== 'Enter') return;
+            const query = document.getElementById('search').value.trim();
+            if (!query) return;
+
+            try {
+                if (query.startsWith('0x') && query.length === 66) {
+                    // Transaction hash
+                    await showTx(query);
+                } else if (query.startsWith('0x') && query.length === 42) {
+                    // Address - show balance
+                    const balance = await provider.getBalance(query);
+                    const code = await provider.getCode(query);
+                    const content = `
+                        <div class="detail-card">
+                            <h3>Address Details</h3>
+                            <div class="detail-row">
+                                <span class="detail-label">Address</span>
+                                <span class="detail-value address">${query}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Balance</span>
+                                <span class="detail-value">${ethers.formatEther(balance)} ETH</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Type</span>
+                                <span class="detail-value">${code === '0x' ? 'EOA (Externally Owned Account)' : 'Contract'}</span>
+                            </div>
+                        </div>
+                    `;
+                    showDetail(content);
+                } else if (!isNaN(query)) {
+                    // Block number
+                    await showBlock(parseInt(query));
+                }
+            } catch (e) {
+                alert('Not found: ' + e.message);
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
