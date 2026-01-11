@@ -1,1 +1,158 @@
-[{"type":"function","name":"getReserve0","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"getReserve1","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"getK","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"balanceOf","inputs":[{"name":"owner","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"totalSupply","inputs":[],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"setFee","inputs":[{"name":"fee_num","type":"uint256"},{"name":"fee_denom","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"setReserves","inputs":[{"name":"r0","type":"uint256"},{"name":"r1","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"mintLP","inputs":[{"name":"to","type":"address"},{"name":"amount","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"burnLP","inputs":[{"name":"from","type":"address"},{"name":"amount","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"type":"function","name":"addLiquidity","inputs":[{"name":"amount0","type":"uint256"},{"name":"amount1","type":"uint256"},{"name":"to","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"quote","inputs":[{"name":"amount0","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"removeLiquidity","inputs":[{"name":"liquidity","type":"uint256"},{"name":"from","type":"address"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"swap0For1","inputs":[{"name":"amount0_in","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"swap1For0","inputs":[{"name":"amount1_in","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"getAmountOut0To1","inputs":[{"name":"amount_in","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"getAmountOut1To0","inputs":[{"name":"amount_in","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"getPrice0","inputs":[{"name":"scale","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"getPrice1","inputs":[{"name":"scale","type":"uint256"}],"outputs":[{"name":"","type":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"transfer","inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"amount","type":"uint256"}],"outputs":[],"stateMutability":"nonpayable"}]
+[
+  {
+    "type": "function",
+    "name": "getReserve0",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getReserve1",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getK",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "inputs": [{ "name": "owner", "type": "address" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "totalSupply",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setFee",
+    "inputs": [
+      { "name": "fee_num", "type": "uint256" },
+      { "name": "fee_denom", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setReserves",
+    "inputs": [
+      { "name": "r0", "type": "uint256" },
+      { "name": "r1", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "mintLP",
+    "inputs": [
+      { "name": "to", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "burnLP",
+    "inputs": [
+      { "name": "from", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addLiquidity",
+    "inputs": [
+      { "name": "amount0", "type": "uint256" },
+      { "name": "amount1", "type": "uint256" },
+      { "name": "to", "type": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "quote",
+    "inputs": [{ "name": "amount0", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeLiquidity",
+    "inputs": [
+      { "name": "liquidity", "type": "uint256" },
+      { "name": "from", "type": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "swap0For1",
+    "inputs": [{ "name": "amount0_in", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "swap1For0",
+    "inputs": [{ "name": "amount1_in", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getAmountOut0To1",
+    "inputs": [{ "name": "amount_in", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getAmountOut1To0",
+    "inputs": [{ "name": "amount_in", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getPrice0",
+    "inputs": [{ "name": "scale", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getPrice1",
+    "inputs": [{ "name": "scale", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transfer",
+    "inputs": [
+      { "name": "from", "type": "address" },
+      { "name": "to", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  }
+]
