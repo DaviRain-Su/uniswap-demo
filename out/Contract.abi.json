@@ -4,35 +4,35 @@
     "name": "getReserve0",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getReserve1",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getK",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "balanceOf",
     "inputs": [{ "name": "owner", "type": "address" }],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "totalSupply",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -90,7 +90,7 @@
     "name": "quote",
     "inputs": [{ "name": "amount0", "type": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -121,28 +121,28 @@
     "name": "getAmountOut0To1",
     "inputs": [{ "name": "amount_in", "type": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getAmountOut1To0",
     "inputs": [{ "name": "amount_in", "type": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getPrice0",
     "inputs": [{ "name": "scale", "type": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getPrice1",
     "inputs": [{ "name": "scale", "type": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
