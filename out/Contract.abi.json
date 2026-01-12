@@ -1,6 +1,13 @@
 [
   {
     "type": "function",
+    "name": "getOwner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getReserve0",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256" }],
@@ -23,7 +30,7 @@
   {
     "type": "function",
     "name": "balanceOf",
-    "inputs": [{ "name": "owner", "type": "address" }],
+    "inputs": [{ "name": "account", "type": "address" }],
     "outputs": [{ "name": "", "type": "uint256" }],
     "stateMutability": "view"
   },
@@ -33,6 +40,20 @@
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256" }],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [{ "name": "new_owner", "type": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [{ "name": "new_owner", "type": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -95,10 +116,7 @@
   {
     "type": "function",
     "name": "removeLiquidity",
-    "inputs": [
-      { "name": "liquidity", "type": "uint256" },
-      { "name": "from", "type": "address" }
-    ],
+    "inputs": [{ "name": "liquidity", "type": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256" }],
     "stateMutability": "nonpayable"
   },
@@ -147,6 +165,16 @@
   {
     "type": "function",
     "name": "transfer",
+    "inputs": [
+      { "name": "to", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferFrom",
     "inputs": [
       { "name": "from", "type": "address" },
       { "name": "to", "type": "address" },

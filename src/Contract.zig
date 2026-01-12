@@ -9,6 +9,9 @@ const Mapping = evm.Mapping;
 
 /// UniswapPair - AMM liquidity pool implementing x*y=k
 pub const Contract = struct {
+    // Owner for access control
+    owner: Address,
+
     // Reserves for the constant product formula
     reserve0: U256,
     reserve1: U256,
@@ -22,6 +25,11 @@ pub const Contract = struct {
     fee_denominator: U256,
 
     // ============ View Functions ============
+
+    /// Get contract owner
+    pub fn getOwner(self: *Contract) Address {
+        return self.owner;
+    }
 
     /// Get reserve0
     pub fn getReserve0(self: *Contract) U256 {
@@ -39,8 +47,8 @@ pub const Contract = struct {
     }
 
     /// Get LP token balance
-    pub fn balanceOf(self: *Contract, owner: Address) U256 {
-        return self.balances.get(owner);
+    pub fn balanceOf(self: *Contract, account: Address) U256 {
+        return self.balances.get(account);
     }
 
     /// Get total LP token supply
@@ -48,28 +56,56 @@ pub const Contract = struct {
         return self.total_supply;
     }
 
-    // ============ Setup Functions ============
+    // ============ Owner Functions ============
 
-    /// Set initial fee (call once: fee_num=3, fee_denom=1000 for 0.3%)
+    /// Initialize owner (can only be called once when owner is zero)
+    pub fn initialize(self: *Contract, new_owner: Address) void {
+        if (self.owner != 0) @panic("already initialized");
+        if (new_owner == 0) @panic("invalid owner");
+        self.owner = new_owner;
+    }
+
+    /// Transfer ownership (only current owner)
+    pub fn transferOwnership(self: *Contract, new_owner: Address) void {
+        if (evm.caller() != self.owner) @panic("not owner");
+        if (new_owner == 0) @panic("invalid owner");
+        self.owner = new_owner;
+    }
+
+    /// Set fee (only owner, fee_num=3, fee_denom=1000 for 0.3%)
     pub fn setFee(self: *Contract, fee_num: U256, fee_denom: U256) void {
+        if (evm.caller() != self.owner) @panic("not owner");
+        if (fee_denom == 0) @panic("invalid fee denom");
+        if (fee_num >= fee_denom) @panic("fee too high");
         self.fee_numerator = fee_num;
         self.fee_denominator = fee_denom;
     }
 
-    /// Set initial reserves directly (for first liquidity)
+    /// Set initial reserves directly (only owner, for first liquidity)
     pub fn setReserves(self: *Contract, r0: U256, r1: U256) void {
+        if (evm.caller() != self.owner) @panic("not owner");
+        if (r0 == 0) @panic("invalid reserve0");
+        if (r1 == 0) @panic("invalid reserve1");
         self.reserve0 = r0;
         self.reserve1 = r1;
     }
 
-    /// Mint LP tokens to an address
+    /// Mint LP tokens to an address (only owner)
     pub fn mintLP(self: *Contract, to: Address, amount: U256) void {
+        if (evm.caller() != self.owner) @panic("not owner");
+        if (to == 0) @panic("invalid recipient");
+        if (amount == 0) @panic("invalid amount");
+
         self.total_supply = self.total_supply + amount;
         self.balances.set(to, self.balances.get(to) + amount);
     }
 
-    /// Burn LP tokens from an address
+    /// Burn LP tokens from an address (only owner)
     pub fn burnLP(self: *Contract, from: Address, amount: U256) void {
+        if (evm.caller() != self.owner) @panic("not owner");
+        if (amount == 0) @panic("invalid amount");
+        if (self.balances.get(from) < amount) @panic("insufficient balance");
+
         self.balances.set(from, self.balances.get(from) - amount);
         self.total_supply = self.total_supply - amount;
     }
@@ -86,9 +122,16 @@ pub const Contract = struct {
         amount1: U256,
         to: Address,
     ) U256 {
+        // Input validation
+        if (amount0 == 0) @panic("invalid amount0");
+        if (amount1 == 0) @panic("invalid amount1");
+        if (to == 0) @panic("invalid recipient");
+        if (self.reserve0 == 0) @panic("no liquidity");
+        if (self.total_supply == 0) @panic("no supply");
+
         // Calculate LP tokens based on token0 ratio
-        // Caller should use quote() to ensure amount1 matches the ratio
         const liquidity = (amount0 * self.total_supply) / self.reserve0;
+        if (liquidity == 0) @panic("insufficient liquidity minted");
 
         // Mint LP tokens
         self.total_supply = self.total_supply + liquidity;
@@ -104,16 +147,20 @@ pub const Contract = struct {
     /// Quote: given amount0, calculate required amount1 to maintain ratio
     /// Use this before addLiquidity to get the correct amount1
     pub fn quote(self: *Contract, amount0: U256) U256 {
+        if (self.reserve0 == 0) @panic("no liquidity");
         return (amount0 * self.reserve1) / self.reserve0;
     }
 
     /// Remove liquidity: burn LP tokens, receive token0 and token1
     /// Returns amount0 (amount1 can be calculated: amount1 = liquidity * reserve1 / totalSupply)
-    pub fn removeLiquidity(
-        self: *Contract,
-        liquidity: U256,
-        from: Address,
-    ) U256 {
+    pub fn removeLiquidity(self: *Contract, liquidity: U256) U256 {
+        const from = evm.caller();
+
+        // Input validation
+        if (liquidity == 0) @panic("invalid liquidity");
+        if (self.balances.get(from) < liquidity) @panic("insufficient balance");
+        if (self.total_supply == 0) @panic("no supply");
+
         // Calculate amounts to return
         const amount0 = (liquidity * self.reserve0) / self.total_supply;
         const amount1 = (liquidity * self.reserve1) / self.total_supply;
@@ -130,16 +177,24 @@ pub const Contract = struct {
     }
 
     /// Swap token0 for token1 using x*y=k formula
-    /// Formula: amount_out = (amount_in * (1000-3) * reserve_out) / (reserve_in * 1000 + amount_in * (1000-3))
     /// Returns amount of token1 received
     pub fn swap0For1(self: *Contract, amount0_in: U256) U256 {
+        // Input validation
+        if (amount0_in == 0) @panic("invalid input amount");
+        if (self.reserve0 == 0) @panic("no liquidity");
+        if (self.reserve1 == 0) @panic("no liquidity");
+        if (self.fee_denominator == 0) @panic("fee not set");
+
         // Calculate output with 0.3% fee
-        // amount_in_with_fee = amount0_in * 997
         const fee_adjusted = self.fee_denominator - self.fee_numerator;
         const amount_in_with_fee = amount0_in * fee_adjusted;
         const numerator = amount_in_with_fee * self.reserve1;
         const denominator = (self.reserve0 * self.fee_denominator) + amount_in_with_fee;
         const amount1_out = numerator / denominator;
+
+        // Output validation
+        if (amount1_out == 0) @panic("insufficient output");
+        if (amount1_out >= self.reserve1) @panic("exceeds reserves");
 
         // Update reserves (x increases, y decreases)
         self.reserve0 = self.reserve0 + amount0_in;
@@ -151,12 +206,22 @@ pub const Contract = struct {
     /// Swap token1 for token0 using x*y=k formula
     /// Returns amount of token0 received
     pub fn swap1For0(self: *Contract, amount1_in: U256) U256 {
+        // Input validation
+        if (amount1_in == 0) @panic("invalid input amount");
+        if (self.reserve0 == 0) @panic("no liquidity");
+        if (self.reserve1 == 0) @panic("no liquidity");
+        if (self.fee_denominator == 0) @panic("fee not set");
+
         // Calculate output with 0.3% fee
         const fee_adjusted = self.fee_denominator - self.fee_numerator;
         const amount_in_with_fee = amount1_in * fee_adjusted;
         const numerator = amount_in_with_fee * self.reserve0;
         const denominator = (self.reserve1 * self.fee_denominator) + amount_in_with_fee;
         const amount0_out = numerator / denominator;
+
+        // Output validation
+        if (amount0_out == 0) @panic("insufficient output");
+        if (amount0_out >= self.reserve0) @panic("exceeds reserves");
 
         // Update reserves (y increases, x decreases)
         self.reserve1 = self.reserve1 + amount1_in;
@@ -167,6 +232,8 @@ pub const Contract = struct {
 
     /// Get expected output for swap0For1 (view function)
     pub fn getAmountOut0To1(self: *Contract, amount_in: U256) U256 {
+        if (self.fee_denominator == 0) @panic("fee not set");
+        if (self.reserve0 == 0) @panic("no liquidity");
         const fee_adjusted = self.fee_denominator - self.fee_numerator;
         const amount_in_with_fee = amount_in * fee_adjusted;
         const numerator = amount_in_with_fee * self.reserve1;
@@ -176,6 +243,8 @@ pub const Contract = struct {
 
     /// Get expected output for swap1For0 (view function)
     pub fn getAmountOut1To0(self: *Contract, amount_in: U256) U256 {
+        if (self.fee_denominator == 0) @panic("fee not set");
+        if (self.reserve1 == 0) @panic("no liquidity");
         const fee_adjusted = self.fee_denominator - self.fee_numerator;
         const amount_in_with_fee = amount_in * fee_adjusted;
         const numerator = amount_in_with_fee * self.reserve0;
@@ -184,20 +253,41 @@ pub const Contract = struct {
     }
 
     /// Get spot price of token0 in terms of token1 (reserve1/reserve0)
-    /// Multiply by 1e18 for precision: price = reserve1 * 1e18 / reserve0
     pub fn getPrice0(self: *Contract, scale: U256) U256 {
+        if (self.reserve0 == 0) @panic("no liquidity");
         return (self.reserve1 * scale) / self.reserve0;
     }
 
     /// Get spot price of token1 in terms of token0 (reserve0/reserve1)
     pub fn getPrice1(self: *Contract, scale: U256) U256 {
+        if (self.reserve1 == 0) @panic("no liquidity");
         return (self.reserve0 * scale) / self.reserve1;
     }
 
     // ============ LP Token Functions ============
 
-    /// Transfer LP tokens between addresses
-    pub fn transfer(self: *Contract, from: Address, to: Address, amount: U256) void {
+    /// Transfer LP tokens to another address
+    /// Uses caller() as the sender for security
+    pub fn transfer(self: *Contract, to: Address, amount: U256) void {
+        const from = evm.caller();
+
+        // Input validation
+        if (to == 0) @panic("invalid recipient");
+        if (amount == 0) @panic("invalid amount");
+        if (self.balances.get(from) < amount) @panic("insufficient balance");
+
+        self.balances.set(from, self.balances.get(from) - amount);
+        self.balances.set(to, self.balances.get(to) + amount);
+    }
+
+    /// Transfer LP tokens from one address to another
+    /// Only owner can transfer on behalf of others
+    pub fn transferFrom(self: *Contract, from: Address, to: Address, amount: U256) void {
+        if (evm.caller() != self.owner) @panic("not owner");
+        if (to == 0) @panic("invalid recipient");
+        if (amount == 0) @panic("invalid amount");
+        if (self.balances.get(from) < amount) @panic("insufficient balance");
+
         self.balances.set(from, self.balances.get(from) - amount);
         self.balances.set(to, self.balances.get(to) + amount);
     }
